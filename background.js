@@ -4,7 +4,8 @@ const STORAGE_KEYS = {
   history: "balanceHistory",
   lastError: "lastError",
   autoRefreshEnabled: "autoRefreshEnabled",
-  floatingEnabled: "floatingPanelEnabled"
+  floatingEnabled: "floatingPanelEnabled",
+  floatingOwnerTabId: "floatingOwnerTabId"
 };
 
 const ALARM_NAME = "api-money-refresh";
@@ -81,8 +82,17 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.type === "API_MONEY_SET_FLOATING_ENABLED") {
       const enabled = Boolean(message.enabled);
       await chrome.storage.local.set({ [STORAGE_KEYS.floatingEnabled]: enabled });
-      if (enabled) { await showFloatingOnActiveTab(); }
-      else { await hideFloatingOwner(); }
+      if (enabled) {
+        const tabId = sender && sender.tab ? sender.tab.id : null;
+        if (tabId) {
+          await chrome.storage.local.set({ [STORAGE_KEYS.floatingOwnerTabId]: tabId });
+          await showFloatingOnTab(tabId);
+        } else {
+          await showFloatingOnActiveTab();
+        }
+      } else {
+        await hideFloatingOwner();
+      }
       return { ok: true, enabled: enabled };
     }
 
@@ -111,40 +121,30 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   return true;
 });
 
-chrome.tabs.onActivated.addListener(async (activeInfo) => {
-  await showFloatingOnTab(activeInfo.tabId);
-});
-
-chrome.windows.onFocusChanged.addListener(async (windowId) => {
-  if (windowId === chrome.windows.WINDOW_ID_NONE) return;
-  const tabs = await chrome.tabs.query({ active: true, windowId: windowId });
-  if (tabs && tabs[0] && tabs[0].id) {
-    await showFloatingOnTab(tabs[0].id);
-  }
-});
-
 async function claimFloatingPanel(tabId) {
   if (!tabId) return false;
-  const stored = await chrome.storage.local.get([STORAGE_KEYS.floatingEnabled]);
+  const stored = await chrome.storage.local.get([STORAGE_KEYS.floatingEnabled, STORAGE_KEYS.floatingOwnerTabId]);
   const enabled = stored[STORAGE_KEYS.floatingEnabled] !== false;
-  if (!enabled) return false;
-  let tab;
-  try { tab = await chrome.tabs.get(tabId); } catch(e) { return false; }
-  let win;
-  try { win = await chrome.windows.get(tab.windowId); } catch(e) { return false; }
-  if (!tab.active || !win.focused) return false;
-  await setFloatingOwner(tabId);
+  const ownerTabId = Number(stored[STORAGE_KEYS.floatingOwnerTabId]);
+  if (!enabled || !ownerTabId || ownerTabId !== Number(tabId)) return false;
+  floatingOwnerTabId = ownerTabId;
   return true;
 }
 
 async function showFloatingOnActiveTab() {
   const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
-  if (tabs && tabs[0] && tabs[0].id) await showFloatingOnTab(tabs[0].id);
+  if (tabs && tabs[0] && tabs[0].id) {
+    const tabId = tabs[0].id;
+    await chrome.storage.local.set({ [STORAGE_KEYS.floatingOwnerTabId]: tabId });
+    await showFloatingOnTab(tabId);
+  }
 }
 
 async function showFloatingOnTab(tabId) {
+  if (!tabId) return;
   const stored = await chrome.storage.local.get([STORAGE_KEYS.floatingEnabled]);
   if (stored[STORAGE_KEYS.floatingEnabled] === false) return;
+  await chrome.storage.local.set({ [STORAGE_KEYS.floatingOwnerTabId]: tabId });
   await setFloatingOwner(tabId);
 }
 

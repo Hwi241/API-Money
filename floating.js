@@ -36,27 +36,9 @@
       }
     });
 
-    document.addEventListener("visibilitychange", claimWhenVisible);
-    window.addEventListener("focus", claimWhenVisible);
     window.addEventListener("resize", keepPanelInsideViewport);
 
-    claimWhenVisible();
     refreshTimer = window.setInterval(renderFromStorage, 5000);
-  }
-
-  function claimWhenVisible() {
-    if (document.visibilityState !== "visible") return;
-
-    sendRuntimeMessage({ type: "API_MONEY_CLAIM_FLOATING" }).then(function(response) {
-      if (response && response.ok && response.visible) {
-        ensurePanel().then(function() {
-          setPanelVisible(true);
-          renderFromStorage();
-        });
-      } else {
-        setPanelVisible(false);
-      }
-    });
   }
 
   function ensurePanel() {
