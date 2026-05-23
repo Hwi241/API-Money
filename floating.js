@@ -23,9 +23,18 @@
       if (!message || !message.type) return;
 
       if (message.type === "API_MONEY_FLOATING_VISIBILITY") {
-        setPanelVisible(Boolean(message.visible));
-        if (message.visible) renderFromStorage();
-        sendResponse({ ok: true });
+        Promise.resolve().then(async function() {
+          if (message.visible) {
+            await ensurePanel();
+            setPanelVisible(true);
+            renderFromStorage();
+          } else {
+            setPanelVisible(false);
+          }
+          sendResponse({ ok: true });
+        }).catch(function(error) {
+          sendResponse({ ok: false, error: error && error.message ? error.message : "Visibility handler failed." });
+        });
         return true;
       }
 
