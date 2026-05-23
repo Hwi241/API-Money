@@ -5,10 +5,13 @@
   "description": "Check your DeepSeek API balance every minute.",
   "permissions": [
     "storage",
-    "alarms"
+    "alarms",
+    "tabs"
   ],
   "host_permissions": [
-    "https://api.deepseek.com/*"
+    "https://api.deepseek.com/*",
+    "http://*/*",
+    "https://*/*"
   ],
   "action": {
     "default_title": "API Money",
@@ -16,5 +19,20 @@
   },
   "background": {
     "service_worker": "background.js"
-  }
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "http://*/*",
+        "https://*/*"
+      ],
+      "js": [
+        "floating.js"
+      ],
+      "css": [
+        "floating.css"
+      ],
+      "run_at": "document_idle"
+    }
+  ]
 }

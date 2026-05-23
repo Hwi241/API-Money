@@ -16,6 +16,7 @@ var els = {
   saveKeyButton: document.getElementById("saveKeyButton"),
   deleteKeyButton: document.getElementById("deleteKeyButton"),
   refreshButton: document.getElementById("refreshButton"),
+  showFloatingButton: document.getElementById("showFloatingButton"),
   keyState: document.getElementById("keyState")
 };
 
@@ -25,6 +26,7 @@ function init() {
   els.saveKeyButton.addEventListener("click", saveApiKey);
   els.deleteKeyButton.addEventListener("click", deleteApiKey);
   els.refreshButton.addEventListener("click", manualRefresh);
+  els.showFloatingButton.addEventListener("click", showFloatingPanel);
   sendRuntimeMessage({ type: "ENSURE_ALARM" }).then(loadState).catch(loadState);
   window.setInterval(loadState, 5000);
 }
@@ -168,6 +170,7 @@ function setLoading(isLoading) {
   els.saveKeyButton.disabled = isLoading;
   els.deleteKeyButton.disabled = isLoading;
   els.refreshButton.disabled = isLoading;
+  els.showFloatingButton.disabled = isLoading;
   if (isLoading) setStatus("조회중", "status-loading");
 }
 

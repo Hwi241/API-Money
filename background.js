@@ -3,7 +3,8 @@ const STORAGE_KEYS = {
   lastBalance: "lastBalanceData",
   history: "balanceHistory",
   lastError: "lastError",
-  autoRefreshEnabled: "autoRefreshEnabled"
+  autoRefreshEnabled: "autoRefreshEnabled",
+  floatingEnabled: "floatingPanelEnabled"
 };
 
 const ALARM_NAME = "api-money-refresh";
@@ -12,7 +13,13 @@ const HISTORY_MAX_DAYS = 2;
 const HISTORY_MAX_ITEMS = 3000;
 const DEEPSEEK_BALANCE_URL = "https://api.deepseek.com/user/balance";
 
+let floatingOwnerTabId = null;
+
 chrome.runtime.onInstalled.addListener(async () => {
+  const stored = await chrome.storage.local.get([STORAGE_KEYS.floatingEnabled]);
+  if (typeof stored[STORAGE_KEYS.floatingEnabled] === "undefined") {
+    await chrome.storage.local.set({ [STORAGE_KEYS.floatingEnabled]: true });
+  }
   await ensureAutoRefreshAlarm();
   await setBadgeFromStorage();
 });
@@ -84,6 +91,68 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
   return true;
 });
+
+chrome.tabs.onActivated.addListener(async (activeInfo) => {
+  await showFloatingOnTab(activeInfo.tabId);
+});
+
+chrome.windows.onFocusChanged.addListener(async (windowId) => {
+  if (windowId === chrome.windows.WINDOW_ID_NONE) return;
+  const tabs = await chrome.tabs.query({ active: true, windowId: windowId });
+  if (tabs && tabs[0] && tabs[0].id) {
+    await showFloatingOnTab(tabs[0].id);
+  }
+});
+
+async function claimFloatingPanel(tabId) {
+  if (!tabId) return false;
+  const stored = await chrome.storage.local.get([STORAGE_KEYS.floatingEnabled]);
+  const enabled = stored[STORAGE_KEYS.floatingEnabled] !== false;
+  if (!enabled) return false;
+  let tab;
+  try { tab = await chrome.tabs.get(tabId); } catch(e) { return false; }
+  let win;
+  try { win = await chrome.windows.get(tab.windowId); } catch(e) { return false; }
+  if (!tab.active || !win.focused) return false;
+  await setFloatingOwner(tabId);
+  return true;
+}
+
+async function showFloatingOnActiveTab() {
+  const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+  if (tabs && tabs[0] && tabs[0].id) await showFloatingOnTab(tabs[0].id);
+}
+
+async function showFloatingOnTab(tabId) {
+  const stored = await chrome.storage.local.get([STORAGE_KEYS.floatingEnabled]);
+  if (stored[STORAGE_KEYS.floatingEnabled] === false) return;
+  await setFloatingOwner(tabId);
+}
+
+async function setFloatingOwner(tabId) {
+  if (!tabId) return;
+  if (floatingOwnerTabId && floatingOwnerTabId !== tabId) {
+    await sendTabMessageSafe(floatingOwnerTabId, { type: "API_MONEY_FLOATING_VISIBILITY", visible: false });
+  }
+  floatingOwnerTabId = tabId;
+  await sendTabMessageSafe(tabId, { type: "API_MONEY_FLOATING_VISIBILITY", visible: true });
+}
+
+async function hideFloatingOwner() {
+  if (floatingOwnerTabId) {
+    await sendTabMessageSafe(floatingOwnerTabId, { type: "API_MONEY_FLOATING_VISIBILITY", visible: false });
+  }
+  floatingOwnerTabId = null;
+}
+
+async function notifyFloatingPanel() {
+  if (!floatingOwnerTabId) return;
+  await sendTabMessageSafe(floatingOwnerTabId, { type: "API_MONEY_FLOATING_REFRESH" });
+}
+
+async function sendTabMessageSafe(tabId, message) {
+  try { await chrome.tabs.sendMessage(tabId, message); } catch(e) {}
+}
 
 async function ensureAutoRefreshAlarm() {
   const stored = await chrome.storage.local.get([
