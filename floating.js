@@ -330,11 +330,19 @@
 
   function sendRuntimeMessage(message) {
     return new Promise(function(resolve) {
-      chrome.runtime.sendMessage(message, function(response) {
-        var err = chrome.runtime.lastError;
-        if (err) { resolve({ ok: false, error: err.message }); return; }
-        resolve(response || { ok: false, error: "No response." });
-      });
+      try {
+        if (!chrome || !chrome.runtime || !chrome.runtime.id) {
+          resolve({ ok: false, error: "Extension context unavailable." });
+          return;
+        }
+        chrome.runtime.sendMessage(message, function(response) {
+          var err = chrome.runtime.lastError;
+          if (err) { resolve({ ok: false, error: err.message }); return; }
+          resolve(response || { ok: false, error: "No response." });
+        });
+      } catch (error) {
+        resolve({ ok: false, error: error && error.message ? error.message : "Extension runtime error." });
+      }
     });
   }
 })();

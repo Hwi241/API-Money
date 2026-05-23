@@ -6,44 +6,80 @@ var STORAGE_KEYS = {
 };
 
 var els = {
-  statusPill: document.getElementById("statusPill"),
-  balanceValue: document.getElementById("balanceValue"),
-  lastUpdated: document.getElementById("lastUpdated"),
-  hourUsage: document.getElementById("hourUsage"),
-  todayUsage: document.getElementById("todayUsage"),
-  messageBox: document.getElementById("messageBox"),
-  apiKeyInput: document.getElementById("apiKeyInput"),
-  saveKeyButton: document.getElementById("saveKeyButton"),
-  deleteKeyButton: document.getElementById("deleteKeyButton"),
-  refreshButton: document.getElementById("refreshButton"),
+  statusPill: null,
+  balanceValue: null,
+  lastUpdated: null,
+  hourUsage: null,
+  todayUsage: null,
+  messageBox: null,
+  apiKeyInput: null,
+  saveKeyButton: null,
+  deleteKeyButton: null,
+  refreshButton: null,
   showFloatingButton: null,
-  keyState: document.getElementById("keyState")
+  keyState: null
 };
 
 document.addEventListener("DOMContentLoaded", init);
 
 function init() {
-  els.showFloatingButton = document.getElementById("showFloatingButton");
+  bindPopupElements();
 
-  els.saveKeyButton.addEventListener("click", saveApiKey);
-  els.deleteKeyButton.addEventListener("click", deleteApiKey);
-  els.refreshButton.addEventListener("click", manualRefresh);
-
-  if (els.showFloatingButton) {
-    els.showFloatingButton.addEventListener("click", showFloatingPanel);
+  if (!hasRequiredElements()) {
+    console.error("[API Money] Required popup elements are missing.", els);
+    showMessage("팝업 요소를 찾지 못했습니다. 확장프로그램을 새로고침한 뒤 다시 열어주세요.", true);
+    return;
   }
+
+  if (els.saveKeyButton) els.saveKeyButton.addEventListener("click", saveApiKey);
+  if (els.deleteKeyButton) els.deleteKeyButton.addEventListener("click", deleteApiKey);
+  if (els.refreshButton) els.refreshButton.addEventListener("click", manualRefresh);
+  if (els.showFloatingButton) els.showFloatingButton.addEventListener("click", showFloatingPanel);
+
   sendRuntimeMessage({ type: "ENSURE_ALARM" }).then(loadState).catch(loadState);
   window.setInterval(loadState, 5000);
 }
 
+function bindPopupElements() {
+  els.statusPill = document.getElementById("statusPill");
+  els.balanceValue = document.getElementById("balanceValue");
+  els.lastUpdated = document.getElementById("lastUpdated");
+  els.hourUsage = document.getElementById("hourUsage");
+  els.todayUsage = document.getElementById("todayUsage");
+  els.messageBox = document.getElementById("messageBox");
+  els.apiKeyInput = document.getElementById("apiKeyInput");
+  els.saveKeyButton = document.getElementById("saveKeyButton");
+  els.deleteKeyButton = document.getElementById("deleteKeyButton");
+  els.refreshButton = document.getElementById("refreshButton");
+  els.showFloatingButton = document.getElementById("showFloatingButton");
+  els.keyState = document.getElementById("keyState");
+}
+
+function hasRequiredElements() {
+  return Boolean(
+    els.statusPill &&
+    els.balanceValue &&
+    els.lastUpdated &&
+    els.hourUsage &&
+    els.todayUsage &&
+    els.messageBox &&
+    els.apiKeyInput &&
+    els.saveKeyButton &&
+    els.deleteKeyButton &&
+    els.refreshButton &&
+    els.keyState
+  );
+}
+
 function saveApiKey() {
+  if (!els.apiKeyInput) return;
   var apiKey = els.apiKeyInput.value.trim();
   if (!apiKey) { showMessage("DeepSeek API Key를 입력해 주세요.", true); return; }
   setLoading(true);
   sendRuntimeMessage({ type: "SAVE_API_KEY", apiKey: apiKey }).then(function(response) {
     setLoading(false);
     if (!response.ok) { showMessage(response.error || "API Key 저장 또는 잔액 조회에 실패했습니다.", true); loadState(); return; }
-    els.apiKeyInput.value = "";
+    if (els.apiKeyInput) els.apiKeyInput.value = "";
     showMessage("API Key를 저장하고 잔액을 조회했습니다.", false);
     loadState();
   }).catch(function(err) {
@@ -54,11 +90,12 @@ function saveApiKey() {
 }
 
 function deleteApiKey() {
+  if (!els.apiKeyInput) return;
   setLoading(true);
   sendRuntimeMessage({ type: "DELETE_API_KEY" }).then(function(response) {
     setLoading(false);
     if (!response.ok) { showMessage(response.error || "API Key 삭제에 실패했습니다.", true); return; }
-    els.apiKeyInput.value = "";
+    if (els.apiKeyInput) els.apiKeyInput.value = "";
     showMessage("API Key와 잔액 기록을 삭제했습니다.", false);
     loadState();
   }).catch(function(err) {
@@ -124,6 +161,7 @@ function loadState() {
 }
 
 function renderKeyState(hasKey) {
+  if (!els.keyState || !els.apiKeyInput) return;
   if (hasKey) {
     els.keyState.textContent = "API Key 저장됨";
     els.apiKeyInput.placeholder = "새 키를 입력하면 교체됩니다";
@@ -134,6 +172,7 @@ function renderKeyState(hasKey) {
 }
 
 function renderBalance(lastBalance) {
+  if (!els.balanceValue || !els.lastUpdated) return;
   if (!lastBalance) {
     els.balanceValue.textContent = "--";
     els.lastUpdated.textContent = "마지막 업데이트 없음";
@@ -144,6 +183,7 @@ function renderBalance(lastBalance) {
 }
 
 function renderUsage(lastBalance, history) {
+  if (!els.hourUsage || !els.todayUsage) return;
   if (!lastBalance || history.length === 0) {
     els.hourUsage.textContent = "--";
     els.todayUsage.textContent = "--";
@@ -188,6 +228,7 @@ function calculateTodayUsage(history, currentBalance) {
 }
 
 function setStatus(text, className) {
+  if (!els.statusPill) return;
   els.statusPill.textContent = text;
   els.statusPill.className = "status " + className;
 }
@@ -204,7 +245,15 @@ function setLoading(isLoading) {
 }
 
 function showMessage(message, isError) {
-  if (!message) { els.messageBox.classList.add("hidden"); els.messageBox.textContent = ""; return; }
+  if (!els.messageBox) {
+    if (message) console.log("[API Money]", isError ? "Error:" : "Info:", message);
+    return;
+  }
+  if (!message) {
+    els.messageBox.classList.add("hidden");
+    els.messageBox.textContent = "";
+    return;
+  }
   els.messageBox.textContent = message;
   els.messageBox.classList.remove("hidden");
   els.messageBox.classList.toggle("error", Boolean(isError));
