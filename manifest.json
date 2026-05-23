@@ -1,0 +1,20 @@
+{
+  "manifest_version": 3,
+  "name": "API Money",
+  "version": "0.1.0",
+  "description": "Check your DeepSeek API balance every minute.",
+  "permissions": [
+    "storage",
+    "alarms"
+  ],
+  "host_permissions": [
+    "https://api.deepseek.com/*"
+  ],
+  "action": {
+    "default_title": "API Money",
+    "default_popup": "popup.html"
+  },
+  "background": {
+    "service_worker": "background.js"
+  }
+}

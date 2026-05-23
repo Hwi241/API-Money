@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <title>API Money</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <main class="app">
+    <header class="header">
+      <div>
+        <h1>API Money</h1>
+        <p>DeepSeek 잔액 자동 확인</p>
+      </div>
+      <span id="statusPill" class="status status-idle">대기</span>
+    </header>
+
+    <section class="balance-card">
+      <div class="label">현재 잔액</div>
+      <div id="balanceValue" class="balance-value">--</div>
+      <div id="lastUpdated" class="sub-text">마지막 업데이트 없음</div>
+    </section>
+
+    <section class="usage-grid">
+      <article>
+        <div class="label">최근 1시간 사용</div>
+        <div id="hourUsage" class="usage-value">--</div>
+      </article>
+      <article>
+        <div class="label">오늘 사용</div>
+        <div id="todayUsage" class="usage-value">--</div>
+      </article>
+    </section>
+
+    <section class="info-box">
+      <div class="info-row">
+        <span>자동 갱신</span>
+        <strong>1분마다</strong>
+      </div>
+      <div class="info-row">
+        <span>계산 방식</span>
+        <strong>잔액 변화 기준</strong>
+      </div>
+    </section>
+
+    <section id="messageBox" class="message hidden"></section>
+
+    <section class="key-section">
+      <label for="apiKeyInput">DeepSeek API Key</label>
+      <input id="apiKeyInput" type="password" placeholder="sk-..." autocomplete="off">
+      <div class="button-row">
+        <button id="saveKeyButton" type="button" class="primary">키 저장</button>
+        <button id="deleteKeyButton" type="button" class="danger">키 삭제</button>
+      </div>
+    </section>
+
+    <section class="button-row bottom">
+      <button id="refreshButton" type="button">지금 새로고침</button>
+    </section>
+
+    <footer>
+      <span id="keyState">API Key 미저장</span>
+    </footer>
+  </main>
+  <script src="popup.js"></script>
+</body>
+</html>
