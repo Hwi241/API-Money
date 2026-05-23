@@ -63,6 +63,27 @@ function deleteApiKey() {
   });
 }
 
+function showFloatingPanel() {
+  setLoading(true);
+
+  sendRuntimeMessage({
+    type: "API_MONEY_SET_FLOATING_ENABLED",
+    enabled: true
+  }).then(function(response) {
+    setLoading(false);
+
+    if (!response.ok) {
+      showMessage(response.error || "플로팅 패널 켜기에 실패했습니다.", true);
+      return;
+    }
+
+    showMessage("플로팅 패널을 켰습니다. 일반 웹사이트의 활성 탭에서 표시됩니다.", false);
+  }).catch(function(err) {
+    setLoading(false);
+    showMessage(err.message || "플로팅 패널 켜기 중 오류가 발생했습니다.", true);
+  });
+}
+
 function manualRefresh() {
   setLoading(true);
   sendRuntimeMessage({ type: "REFRESH_BALANCE" }).then(function(response) {
