@@ -232,13 +232,10 @@ async function setBadgeText(text, color) {
 
 function formatBadgeBalance(value) {
   const amount = Number(value);
-  if (!Number.isFinite(amount)) return "ERR";
-  if (amount >= 1000) return "" + Math.floor(amount / 1000) + "K";
-  if (amount >= 100) return "$" + Math.round(amount);
-  if (amount >= 10) return "$" + Math.round(amount);
-  if (amount >= 1) return "$" + amount.toFixed(1);
-  if (amount >= 0) return "$" + amount.toFixed(2).replace(/^0/, "");
-  return "ERR";
+  if (!Number.isFinite(amount) || amount < 0) {
+    return "ERR";
+  }
+  return "$" + amount.toFixed(2);
 }
 
 async function readResponseText(response) {
