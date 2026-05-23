@@ -78,6 +78,25 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       return { ok: true };
     }
 
+    if (message.type === "API_MONEY_SET_FLOATING_ENABLED") {
+      const enabled = Boolean(message.enabled);
+      await chrome.storage.local.set({ [STORAGE_KEYS.floatingEnabled]: enabled });
+      if (enabled) { await showFloatingOnActiveTab(); }
+      else { await hideFloatingOwner(); }
+      return { ok: true, enabled: enabled };
+    }
+
+    if (message.type === "API_MONEY_GET_FLOATING_ENABLED") {
+      const stored = await chrome.storage.local.get([STORAGE_KEYS.floatingEnabled]);
+      return { ok: true, enabled: stored[STORAGE_KEYS.floatingEnabled] !== false };
+    }
+
+    if (message.type === "API_MONEY_CLAIM_FLOATING") {
+      const tabId = sender && sender.tab ? sender.tab.id : null;
+      const visible = await claimFloatingPanel(tabId);
+      return { ok: true, visible: visible };
+    }
+
     return { ok: false, error: "Unsupported message type." };
   })()
   .then((result) => sendResponse(result))
